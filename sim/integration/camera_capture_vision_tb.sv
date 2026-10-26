@@ -101,7 +101,18 @@ module camera_capture_vision_tb;
     wire [9:0] pixel_x;
     wire [9:0] pixel_y;
 
+    wire        adapter_frame_good;
+    wire        adapter_stream_ok;
+    wire [1:0]  adapter_last_error;
+    wire [15:0] adapter_good_frames;
+    wire [15:0] adapter_bad_frames;
+    wire [15:0] adapter_dropped_pixels;
+    wire [23:0] adapter_frame_period;
+
     camera_stream_adapter u_adapter (
+        .clk(pclk),
+        .rst_n(camera_reset_n),
+
         .cam_frame_start(capture_frame_start),
         .cam_valid(capture_valid),
         .cam_pixel(capture_pixel),
@@ -113,7 +124,15 @@ module camera_capture_vision_tb;
         .pixel_valid(pixel_valid),
         .pixel_rgb565(pixel_rgb565),
         .pixel_x(pixel_x),
-        .pixel_y(pixel_y)
+        .pixel_y(pixel_y),
+
+        .frame_good(adapter_frame_good),
+        .stream_ok(adapter_stream_ok),
+        .last_error(adapter_last_error),
+        .good_frames(adapter_good_frames),
+        .bad_frames(adapter_bad_frames),
+        .dropped_pixels(adapter_dropped_pixels),
+        .frame_period(adapter_frame_period)
     );
 
     // --------------------------------------------------
@@ -348,6 +367,16 @@ module camera_capture_vision_tb;
                             "False target detected");
                 end
 
+                // V2 frame-integrity stage: real camera frames
+                // must all be accepted, none rejected.
+                if (adapter_bad_frames != 16'd0 ||
+                    adapter_good_frames != 16'(completed_frames + 1) ||
+                    adapter_stream_ok !== 1'b1)
+                    $fatal(1,
+                        "Adapter integrity: good=%0d bad=%0d ok=%b err=%b",
+                        adapter_good_frames, adapter_bad_frames,
+                        adapter_stream_ok, adapter_last_error);
+
                 completed_frames++;
 
                 $display(
@@ -373,6 +402,9 @@ module camera_capture_vision_tb;
                              total_pixel_checks);
                     $display("Camera model errors: %0d",
                              camera_errors);
+                    $display("Adapter: %0d good / %0d bad frames, %0d pixels dropped before lock, frame period %0d PCLKs",
+                             adapter_good_frames, adapter_bad_frames,
+                             adapter_dropped_pixels, adapter_frame_period);
                     $display("-------------------------------------------");
                     $finish;
                 end

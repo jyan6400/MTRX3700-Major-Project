@@ -208,7 +208,24 @@ module major_project_top #(
     wire [9:0]  pixel_x;
     wire [9:0]  pixel_y;
 
-    camera_stream_adapter u_camera_adapter (
+    // V2 frame-integrity stage (Luke): locks to frame_start, checks every
+    // pixel's raster position, and closes rejected frames with an empty
+    // close so led_centroid reports no target for them. One PCLK latency.
+    wire        cam_frame_good;
+    wire        cam_stream_ok;
+    wire [1:0]  cam_last_error;
+    wire [15:0] cam_good_frames;
+    wire [15:0] cam_bad_frames;
+    wire [15:0] cam_dropped_pixels;
+    wire [23:0] cam_frame_period;
+
+    camera_stream_adapter #(
+        .W(640),
+        .H(480)
+    ) u_camera_adapter (
+        .clk(cam_pclk),
+        .rst_n(rst_n_cam),
+
         .cam_frame_start(cam_frame_start),
         .cam_valid(cam_pixel_valid),
         .cam_pixel(cam_pixel),
@@ -220,7 +237,15 @@ module major_project_top #(
         .pixel_valid(pixel_valid),
         .pixel_rgb565(pixel_rgb565),
         .pixel_x(pixel_x),
-        .pixel_y(pixel_y)
+        .pixel_y(pixel_y),
+
+        .frame_good(cam_frame_good),
+        .stream_ok(cam_stream_ok),
+        .last_error(cam_last_error),
+        .good_frames(cam_good_frames),
+        .bad_frames(cam_bad_frames),
+        .dropped_pixels(cam_dropped_pixels),
+        .frame_period(cam_frame_period)
     );
 
     wire        mask_valid;
@@ -538,6 +563,16 @@ module major_project_top #(
             cfg_sync <= {cfg_sync[0], cfg_done};
     end
 
+    // Camera stream integrity (PCLK level signal) into 50 MHz.
+    (* async_reg = "true" *) logic [1:0] cam_ok_sync = 2'b00;
+
+    always_ff @(posedge CLOCK_50 or negedge rst_n_50) begin
+        if (!rst_n_50)
+            cam_ok_sync <= 2'b00;
+        else
+            cam_ok_sync <= {cam_ok_sync[0], cam_stream_ok};
+    end
+
     // ====================================================
     // V1 TEMPORARY CAMERA DIAGNOSTICS
     // ====================================================
@@ -574,7 +609,7 @@ module major_project_top #(
     // LEDR4: Target right of centre
     // LEDR5: Emergency stop active
     // LEDR6: Sonar valid
-    // LEDR7: Reserved
+    // LEDR7: Last camera frame passed the integrity check
     // LEDR8: Vision CDC overrun
     // LEDR9: Sonar CDC overrun
 
@@ -585,7 +620,7 @@ module major_project_top #(
     assign LEDR[4] = diag_target_valid && (diag_target_x > 10'd360);
     assign LEDR[5] = emergency_stop;
     assign LEDR[6] = sonar_valid;
-    assign LEDR[7] = 1'b0;
+    assign LEDR[7] = cam_ok_sync[1];
     assign LEDR[8] = vision_cdc_overrun;
     assign LEDR[9] = sonar_cdc_overrun;
 
