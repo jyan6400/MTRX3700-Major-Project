@@ -101,10 +101,10 @@ module motion_interface_tb;
         check_motion("centred target", 1, 80, 80);
 
         send_frame(1, 400);
-        check_motion("target right", 1, 100, 60);
+        check_motion("target right", 1, 85, 45);
 
         send_frame(1, 240);
-        check_motion("target left", 1, 60, 100);
+        check_motion("target left", 1, 45, 85);
 
         @(negedge clk);
         sonar_valid = 1'b0;
@@ -112,7 +112,7 @@ module motion_interface_tb;
 
         @(negedge clk);
         sonar_valid = 1'b1;
-        check_motion("fresh sonar restores driving", 1, 60, 100);
+        check_motion("fresh sonar restores driving", 1, 45, 85);
 
         send_frame(0, 0);
         check_motion("lost target stops", 0, 0, 0);

@@ -16,7 +16,9 @@
 // Sonar PLL clock: ultrasonic echo measurement.
 //
 // KEY0 = system reset (active low).
-// SW0  = arm switch (1 = armed).
+// SW0 = arm switch (1 = armed).
+// SW1 = target-validation bypass (1 = V1 behaviour).
+// SW2 = sonar-filter bypass (1 = V1 behaviour).
 // IR Power = emergency stop.
 // IR CH+   = release emergency-stop latch.
 //
@@ -208,7 +210,24 @@ module major_project_top #(
     wire [9:0]  pixel_x;
     wire [9:0]  pixel_y;
 
-    camera_stream_adapter u_camera_adapter (
+    // V2 frame-integrity stage (Luke): locks to frame_start, checks every
+    // pixel's raster position, and closes rejected frames with an empty
+    // close so led_centroid reports no target for them. One PCLK latency.
+    wire        cam_frame_good;
+    wire        cam_stream_ok;
+    wire [1:0]  cam_last_error;
+    wire [15:0] cam_good_frames;
+    wire [15:0] cam_bad_frames;
+    wire [15:0] cam_dropped_pixels;
+    wire [23:0] cam_frame_period;
+
+    camera_stream_adapter #(
+        .W(640),
+        .H(480)
+    ) u_camera_adapter (
+        .clk(cam_pclk),
+        .rst_n(rst_n_cam),
+
         .cam_frame_start(cam_frame_start),
         .cam_valid(cam_pixel_valid),
         .cam_pixel(cam_pixel),
@@ -220,7 +239,15 @@ module major_project_top #(
         .pixel_valid(pixel_valid),
         .pixel_rgb565(pixel_rgb565),
         .pixel_x(pixel_x),
-        .pixel_y(pixel_y)
+        .pixel_y(pixel_y),
+
+        .frame_good(cam_frame_good),
+        .stream_ok(cam_stream_ok),
+        .last_error(cam_last_error),
+        .good_frames(cam_good_frames),
+        .bad_frames(cam_bad_frames),
+        .dropped_pixels(cam_dropped_pixels),
+        .frame_period(cam_frame_period)
     );
 
     wire        mask_valid;
@@ -246,9 +273,25 @@ module major_project_top #(
     wire [9:0]  cam_target_y;
     wire [31:0] red_count;
 
+    // ====================================================
+    // R9: SW1 target-validation bypass
+    // 0 = V2 validation enabled
+    // 1 = V1-equivalent target acceptance
+    // ====================================================
+
+    (* async_reg = "true" *) logic [1:0] target_bypass_sync;
+
+    always_ff @(posedge cam_pclk or negedge rst_n_cam) begin
+        if (!rst_n_cam)
+            target_bypass_sync <= 2'b00;
+        else
+            target_bypass_sync <= {target_bypass_sync[0], SW[1]};
+    end
+
     led_centroid u_led_centroid (
         .clk(cam_pclk),
         .rst_n(rst_n_cam),
+        .gate_bypass(target_bypass_sync[1]),     // SW1: 0 = V2, 1 = V1 bypass
 
         .frame_start(frame_start),
         .frame_end(frame_end),
@@ -262,7 +305,13 @@ module major_project_top #(
         .target_valid(cam_target_valid),
         .target_x(cam_target_x),
         .target_y(cam_target_y),
-        .red_count(red_count)
+        .red_count(red_count),
+        .confidence(),
+        .reject_flags(),
+        .bbox_x_min(),
+        .bbox_x_max(),
+        .bbox_y_min(),
+        .bbox_y_max()
     );
 
     // ====================================================
@@ -375,20 +424,42 @@ module major_project_top #(
 
     wire        sonar_valid;
     wire [15:0] distance_mm;
+    wire        sonar_forward_clear;
+    wire        sonar_fresh;
 
-    sonar_freshness #(
+    // V2 ultrasonic filtering and forward-motion safety.
+    sonar_filter #(
         .MAX_AGE_CYCLES(12_500_000),
         .MIN_RANGE_MM(16'd20),
-        .MAX_RANGE_MM(16'd3500)
-    ) u_sonar_freshness (
+        .MAX_RANGE_MM(16'd3500),
+        .OUTLIER_MM(16'd80),
+        .STOP_MM(16'd250),
+        .MAX_MISSES(2)
+    ) u_sonar_filter (
         .clk(CLOCK_50),
         .rst_n(rst_n_50),
+
+        // SW2: 0 = V2 sonar filter, 1 = V1 sonar behaviour.
+        .bypass(SW[2]),
 
         .measurement_valid(sonar_measure_valid),
         .measurement_mm(sonar_measurement_mm),
 
         .sonar_valid(sonar_valid),
-        .distance_mm(distance_mm)
+        .distance_mm(distance_mm),
+        .sonar_fresh(sonar_fresh),
+        .forward_clear(sonar_forward_clear),
+
+        // Optional diagnostics.
+        .update(),
+        .raw_mm(),
+        .window_count(),
+        .close_suspect(),
+        .fault_no_echo(),
+        .fault_stale(),
+        .rejected_count(),
+        .bridged_count(),
+        .bypass_active()
     );
 
     // ====================================================
@@ -489,7 +560,7 @@ module major_project_top #(
         !emergency_stop &&
         camera_target_fresh &&
         sonar_valid &&
-        (distance_mm > 16'd250) &&
+        sonar_forward_clear &&
         motor_enable;
 
     wire signed [9:0] chassis_left =
@@ -538,6 +609,16 @@ module major_project_top #(
             cfg_sync <= {cfg_sync[0], cfg_done};
     end
 
+    // Camera stream integrity (PCLK level signal) into 50 MHz.
+    (* async_reg = "true" *) logic [1:0] cam_ok_sync = 2'b00;
+
+    always_ff @(posedge CLOCK_50 or negedge rst_n_50) begin
+        if (!rst_n_50)
+            cam_ok_sync <= 2'b00;
+        else
+            cam_ok_sync <= {cam_ok_sync[0], cam_stream_ok};
+    end
+
     // ====================================================
     // V1 TEMPORARY CAMERA DIAGNOSTICS
     // ====================================================
@@ -574,7 +655,7 @@ module major_project_top #(
     // LEDR4: Target right of centre
     // LEDR5: Emergency stop active
     // LEDR6: Sonar valid
-    // LEDR7: Reserved
+    // LEDR7: Last camera frame passed the integrity check
     // LEDR8: Vision CDC overrun
     // LEDR9: Sonar CDC overrun
 
@@ -585,7 +666,7 @@ module major_project_top #(
     assign LEDR[4] = diag_target_valid && (diag_target_x > 10'd360);
     assign LEDR[5] = emergency_stop;
     assign LEDR[6] = sonar_valid;
-    assign LEDR[7] = 1'b0;
+    assign LEDR[7] = cam_ok_sync[1];
     assign LEDR[8] = vision_cdc_overrun;
     assign LEDR[9] = sonar_cdc_overrun;
 

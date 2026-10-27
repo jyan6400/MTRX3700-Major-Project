@@ -47,6 +47,7 @@ module red_vision_pipeline_tb;
     ) u_centroid (
         .clk(clk),
         .rst_n(rst_n),
+        .gate_bypass(1'b1), // Legacy V1 acceptance regression
 
         .frame_start(frame_start),
         .frame_end(frame_end),

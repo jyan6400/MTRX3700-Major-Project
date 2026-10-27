@@ -1,0 +1,51 @@
+{
+  "photo_only": [],
+  "photo_leds": [
+    {
+      "colour": "red",
+      "cx": 430,
+      "cy": 205,
+      "rad": 9
+    },
+    {
+      "colour": "green",
+      "cx": 165,
+      "cy": 300,
+      "rad": 8
+    },
+    {
+      "colour": "blue",
+      "cx": 205,
+      "cy": 190,
+      "rad": 10
+    }
+  ],
+  "photo_red_left": [
+    {
+      "colour": "red",
+      "cx": 150,
+      "cy": 330,
+      "rad": 9
+    },
+    {
+      "colour": "blue",
+      "cx": 205,
+      "cy": 190,
+      "rad": 10
+    }
+  ],
+  "photo_green_blue": [
+    {
+      "colour": "green",
+      "cx": 165,
+      "cy": 300,
+      "rad": 8
+    },
+    {
+      "colour": "blue",
+      "cx": 205,
+      "cy": 190,
+      "rad": 10
+    }
+  ]
+}

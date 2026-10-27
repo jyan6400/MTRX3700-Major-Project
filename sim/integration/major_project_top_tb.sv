@@ -126,6 +126,7 @@ module major_project_top_tb;
         force dut.camera_target_fresh = 1'b0;
         force dut.sonar_valid         = 1'b0;
         force dut.distance_mm         = 16'd0;
+        force dut.sonar_forward_clear = 1'b0;
         force dut.motor_enable        = 1'b1;
         force dut.left_pwm            = 16'sd80;
         force dut.right_pwm           = 16'sd80;
@@ -163,6 +164,7 @@ module major_project_top_tb;
         // A fresh sonar measurement above stopping distance.
         force dut.sonar_valid = 1'b1;
         force dut.distance_mm = 16'd1000;
+        force dut.sonar_forward_clear = 1'b1;
 
         verify_drive(
             "all safety conditions allow forward PWM",
@@ -180,6 +182,7 @@ module major_project_top_tb;
 
         // Docking threshold.
         force dut.distance_mm = 16'd250;
+        force dut.sonar_forward_clear = 1'b0;
 
         verify_drive(
             "250 mm docking threshold inhibits motion",
@@ -188,6 +191,7 @@ module major_project_top_tb;
 
         // Below threshold must also remain stopped.
         force dut.distance_mm = 16'd200;
+        force dut.sonar_forward_clear = 1'b0;
 
         verify_drive(
             "obstacle below threshold inhibits motion",
@@ -196,6 +200,7 @@ module major_project_top_tb;
 
         // Restore distance, then simulate camera timeout.
         force dut.distance_mm = 16'd1000;
+        force dut.sonar_forward_clear = 1'b1;
         force dut.camera_target_fresh = 1'b0;
 
         verify_drive(

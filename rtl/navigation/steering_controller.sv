@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-// MTRX3700 Major Project - V1
+// MTRX3700 Major Project - V2
 // Proportional image-based differential steering.
 //
 // target_x: detected LED horizontal position, 0..639.
@@ -13,7 +13,7 @@
 // INVERT_STEERING reverses the correction for camera/motor orientation.
 //
 // Outputs are signed PWM commands for the Ed chassis_drive module.
-// This V1 controller commands forward motion only.
+// V2 schedules forward speed according to target alignment.
 //
 // No clock or added pipeline latency.
 
@@ -21,6 +21,9 @@ module steering_controller #(
     parameter int IMAGE_CENTRE     = 320,
     parameter int DEADBAND_PIXELS  = 20,
     parameter int BASE_PWM         = 80,
+    parameter int MEDIUM_PWM       = 65,
+    parameter int SLOW_PWM         = 50,
+    parameter int SLOW_THRESHOLD   = 80,
     parameter int KP_NUM           = 1,
     parameter int KP_DEN           = 4,
     parameter int MAX_PWM          = 120,
@@ -36,6 +39,8 @@ module steering_controller #(
 
     int signed error_pixels;
     int signed correction;
+    int signed abs_error;
+    int signed scheduled_pwm;
     int signed left_raw;
     int signed right_raw;
     int signed left_limited;
@@ -55,6 +60,8 @@ module steering_controller #(
     always_comb begin
         error_pixels = int'({1'b0, target_x}) - IMAGE_CENTRE;
         correction   = 0;
+        abs_error    = (error_pixels < 0) ? -error_pixels : error_pixels;
+        scheduled_pwm = BASE_PWM;
 
         left_raw     = 0;
         right_raw    = 0;
@@ -66,6 +73,11 @@ module steering_controller #(
 
         if (drive_enable && target_available) begin
 
+            if (abs_error > SLOW_THRESHOLD)
+                scheduled_pwm = SLOW_PWM;
+            else if (abs_error > DEADBAND_PIXELS)
+                scheduled_pwm = MEDIUM_PWM;
+
             if ((error_pixels > DEADBAND_PIXELS) ||
                 (error_pixels < -DEADBAND_PIXELS)) begin
 
@@ -75,8 +87,8 @@ module steering_controller #(
             if (INVERT_STEERING)
                 correction = -correction;
 
-            left_raw  = BASE_PWM + correction;
-            right_raw = BASE_PWM - correction;
+            left_raw  = scheduled_pwm + correction;
+            right_raw = scheduled_pwm - correction;
 
             left_limited  = clamp_pwm(left_raw);
             right_limited = clamp_pwm(right_raw);
