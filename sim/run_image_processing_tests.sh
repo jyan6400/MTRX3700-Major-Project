@@ -22,7 +22,7 @@ MODE=${1:-all}
 # Fails identically on main @058bd48 (before this branch): written for the V1
 # led_centroid; Marcus's V2 shape/fill gates (PR #4) now reject its 3-pixel
 # scattered target. Owner M3 to update the bench.
-KNOWN_FAIL="red_vision_pipeline"
+KNOWN_FAIL=""
 
 RUNARGS=""   # plusargs for the next run() only
 run() {   # run <name> <top> <files...>

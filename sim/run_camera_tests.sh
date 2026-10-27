@@ -24,7 +24,7 @@ run() {   # run <name> <top> <files...>; returns the simulation's exit status
     return 1
 }
 
-DOWNSTREAM="rtl/image_processing/red_mask.sv rtl/perception/led_centroid.sv"
+DOWNSTREAM="rtl/image_processing/led_colour_mask.sv rtl/image_processing/red_mask.sv rtl/perception/led_centroid.sv"
 
 if run adapter_unit camera_stream_adapter_tb \
         rtl/integration/camera_stream_adapter.sv $DOWNSTREAM sim/unit/camera_stream_adapter_tb.sv; then
