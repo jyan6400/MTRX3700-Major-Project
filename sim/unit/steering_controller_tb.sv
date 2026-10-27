@@ -100,23 +100,32 @@ module steering_controller_tb;
 
         // Outside deadband, integer gain calculation
         check_drive("just outside right deadband",
-                    1, 1, 341, 85, 75);
+                    1, 1, 341, 70, 60);
         check_drive("just outside left deadband",
-                    1, 1, 299, 75, 85);
+                    1, 1, 299, 60, 70);
 
         // Normal proportional corrections
-        check_drive("target right", 1, 1, 400, 100, 60);
-        check_drive("target left", 1, 1, 240, 60, 100);
+        check_drive("target right", 1, 1, 400, 85, 45);
+        check_drive("target left", 1, 1, 240, 45, 85);
 
         // Steering polarity inversion
-        check_inverted("inverted target left", 100, 60);
+        check_inverted("inverted target left", 85, 45);
 
         check_drive("target right for inverse test",
-                    1, 1, 400, 100, 60);
-        check_inverted("inverted target right", 60, 100);
+                    1, 1, 400, 85, 45);
+        check_inverted("inverted target right", 45, 85);
 
+        // V2 speed-scheduling boundary tests
+        check_drive("V2 error 20", 1, 1, 340, 80, 80);
+        check_drive("V2 error 21", 1, 1, 341, 70, 60);
+        check_drive("V2 error 80", 1, 1, 400, 85, 45);
+        check_drive("V2 error 81", 1, 1, 401, 70, 30);
+
+        check_drive("V2 left error 21", 1, 1, 299, 60, 70);
+        check_drive("V2 left error 80", 1, 1, 240, 45, 85);
+        check_drive("V2 left error 81", 1, 1, 239, 30, 70);
         // Image boundaries and PWM saturation
-        check_drive("far right edge", 1, 1, 639, 120, 1);
+        check_drive("far right edge", 1, 1, 639, 120, 0);
         check_drive("far left edge", 1, 1, 0, 0, 120);
 
         // Disabled controller must override a large error

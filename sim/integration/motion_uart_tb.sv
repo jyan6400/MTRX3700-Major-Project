@@ -283,8 +283,8 @@ module motion_uart_tb;
 
         expect_uart(
             "LED right steering",
-            "{\"T\":11,\"L\":100,\"R\":60}",
-            1, 100, 60
+            "{\"T\":11,\"L\":85,\"R\":45}",
+            1, 85, 45
         );
 
         // Test 5: LED on left.
@@ -292,8 +292,8 @@ module motion_uart_tb;
 
         expect_uart(
             "LED left steering",
-            "{\"T\":11,\"L\":60,\"R\":100}",
-            1, 60, 100
+            "{\"T\":11,\"L\":45,\"R\":85}",
+            1, 45, 85
         );
 
         // Test 6: sonar becomes invalid.
@@ -313,8 +313,8 @@ module motion_uart_tb;
         // Test 7: valid sonar restores movement.
         expect_uart(
             "Sonar restored",
-            "{\"T\":11,\"L\":60,\"R\":100}",
-            1, 60, 100
+            "{\"T\":11,\"L\":45,\"R\":85}",
+            1, 45, 85
         );
 
         // Test 8: target disappears.
