@@ -274,6 +274,7 @@ module major_project_top #(
     led_centroid u_led_centroid (
         .clk(cam_pclk),
         .rst_n(rst_n_cam),
+        .gate_bypass(1'b0),     // V2 gates on; route to a switch for the R9 bypass test
 
         .frame_start(frame_start),
         .frame_end(frame_end),
@@ -287,7 +288,13 @@ module major_project_top #(
         .target_valid(cam_target_valid),
         .target_x(cam_target_x),
         .target_y(cam_target_y),
-        .red_count(red_count)
+        .red_count(red_count),
+        .confidence(),
+        .reject_flags(),
+        .bbox_x_min(),
+        .bbox_x_max(),
+        .bbox_y_min(),
+        .bbox_y_max()
     );
 
     // ====================================================
