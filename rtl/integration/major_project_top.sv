@@ -16,7 +16,9 @@
 // Sonar PLL clock: ultrasonic echo measurement.
 //
 // KEY0 = system reset (active low).
-// SW0  = arm switch (1 = armed).
+// SW0 = arm switch (1 = armed).
+// SW1 = target-validation bypass (1 = V1 behaviour).
+// SW2 = sonar-filter bypass (1 = V1 behaviour).
 // IR Power = emergency stop.
 // IR CH+   = release emergency-stop latch.
 //
@@ -271,10 +273,25 @@ module major_project_top #(
     wire [9:0]  cam_target_y;
     wire [31:0] red_count;
 
+    // ====================================================
+    // R9: SW1 target-validation bypass
+    // 0 = V2 validation enabled
+    // 1 = V1-equivalent target acceptance
+    // ====================================================
+
+    (* async_reg = "true" *) logic [1:0] target_bypass_sync;
+
+    always_ff @(posedge cam_pclk or negedge rst_n_cam) begin
+        if (!rst_n_cam)
+            target_bypass_sync <= 2'b00;
+        else
+            target_bypass_sync <= {target_bypass_sync[0], SW[1]};
+    end
+
     led_centroid u_led_centroid (
         .clk(cam_pclk),
         .rst_n(rst_n_cam),
-        .gate_bypass(1'b0),     // V2 gates on; route to a switch for the R9 bypass test
+        .gate_bypass(target_bypass_sync[1]),     // SW1: 0 = V2, 1 = V1 bypass
 
         .frame_start(frame_start),
         .frame_end(frame_end),
@@ -422,8 +439,8 @@ module major_project_top #(
         .clk(CLOCK_50),
         .rst_n(rst_n_50),
 
-        // V2 enabled. Physical bypass added after validation.
-        .bypass(1'b0),
+        // SW2: 0 = V2 sonar filter, 1 = V1 sonar behaviour.
+        .bypass(SW[2]),
 
         .measurement_valid(sonar_measure_valid),
         .measurement_mm(sonar_measurement_mm),

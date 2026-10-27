@@ -85,6 +85,7 @@ run capture_vision      camera_capture_vision_tb rtl/integration/camera_stream_a
 run major_project_top   major_project_top_tb  $TOP_RTL sim/integration/major_project_top_tb.sv
 run top_uart_safety     top_uart_safety_tb    $TOP_RTL vendor/chassis/tb/ugv02_model.sv sim/integration/top_uart_safety_tb.sv
 run top_uart_latency    top_uart_latency_tb   $TOP_RTL vendor/chassis/tb/ugv02_model.sv sim/integration/top_uart_latency_tb.sv
+run top_r9_bypass      top_r9_bypass_tb    $TOP_RTL sim/integration/top_r9_bypass_tb.sv
 
 if [ "$MODE" != "quick" ]; then
     echo "== Full top level from the camera pins (real vendor models) =="
