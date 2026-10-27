@@ -407,20 +407,42 @@ module major_project_top #(
 
     wire        sonar_valid;
     wire [15:0] distance_mm;
+    wire        sonar_forward_clear;
+    wire        sonar_fresh;
 
-    sonar_freshness #(
+    // V2 ultrasonic filtering and forward-motion safety.
+    sonar_filter #(
         .MAX_AGE_CYCLES(12_500_000),
         .MIN_RANGE_MM(16'd20),
-        .MAX_RANGE_MM(16'd3500)
-    ) u_sonar_freshness (
+        .MAX_RANGE_MM(16'd3500),
+        .OUTLIER_MM(16'd80),
+        .STOP_MM(16'd250),
+        .MAX_MISSES(2)
+    ) u_sonar_filter (
         .clk(CLOCK_50),
         .rst_n(rst_n_50),
+
+        // V2 enabled. Physical bypass added after validation.
+        .bypass(1'b0),
 
         .measurement_valid(sonar_measure_valid),
         .measurement_mm(sonar_measurement_mm),
 
         .sonar_valid(sonar_valid),
-        .distance_mm(distance_mm)
+        .distance_mm(distance_mm),
+        .sonar_fresh(sonar_fresh),
+        .forward_clear(sonar_forward_clear),
+
+        // Optional diagnostics.
+        .update(),
+        .raw_mm(),
+        .window_count(),
+        .close_suspect(),
+        .fault_no_echo(),
+        .fault_stale(),
+        .rejected_count(),
+        .bridged_count(),
+        .bypass_active()
     );
 
     // ====================================================
@@ -521,7 +543,7 @@ module major_project_top #(
         !emergency_stop &&
         camera_target_fresh &&
         sonar_valid &&
-        (distance_mm > 16'd250) &&
+        sonar_forward_clear &&
         motor_enable;
 
     wire signed [9:0] chassis_left =

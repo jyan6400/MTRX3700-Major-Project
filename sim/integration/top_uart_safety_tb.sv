@@ -185,6 +185,7 @@ module top_uart_safety_tb;
         force dut.camera_target_fresh = 1'b0;
         force dut.sonar_valid = 1'b0;
         force dut.distance_mm = 16'd0;
+        force dut.sonar_forward_clear = 1'b0;
 
         force dut.motor_enable = 1'b1;
         force dut.left_pwm = 16'sd80;
@@ -201,6 +202,7 @@ module top_uart_safety_tb;
         force dut.camera_target_fresh = 1'b1;
         force dut.sonar_valid = 1'b1;
         force dut.distance_mm = 16'd1000;
+        force dut.sonar_forward_clear = 1'b1;
 
         settle();
 
@@ -222,6 +224,7 @@ module top_uart_safety_tb;
 
         // Trigger a docking stop.
         force dut.distance_mm = 16'd250;
+        force dut.sonar_forward_clear = 1'b0;
 
         settle();
 
@@ -235,6 +238,7 @@ module top_uart_safety_tb;
 
         // Restore approach, then simulate loss of camera data.
         force dut.distance_mm = 16'd1000;
+        force dut.sonar_forward_clear = 1'b1;
         force dut.camera_target_fresh = 1'b1;
 
         expect_uart(

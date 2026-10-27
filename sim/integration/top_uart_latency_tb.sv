@@ -201,6 +201,7 @@ module top_uart_latency_tb;
         force dut.camera_target_fresh = 1'b1;
         force dut.sonar_valid = 1'b1;
         force dut.distance_mm = 16'd1000;
+        force dut.sonar_forward_clear = 1'b1;
         force dut.motor_enable = 1'b1;
         force dut.left_pwm = 16'sd80;
         force dut.right_pwm = 16'sd80;
@@ -247,6 +248,7 @@ module top_uart_latency_tb;
         force dut.emergency_stop = 1'b0;
         force dut.motion_permitted = 1'b1;
         force dut.distance_mm = 16'd1000;
+        force dut.sonar_forward_clear = 1'b1;
 
         previous_count = command_count;
 
@@ -262,6 +264,7 @@ module top_uart_latency_tb;
         event_time = $realtime;
 
         force dut.distance_mm = 16'd250;
+        force dut.sonar_forward_clear = 1'b0;
 
         #1;
 

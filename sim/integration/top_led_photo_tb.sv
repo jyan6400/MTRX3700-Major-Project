@@ -221,6 +221,18 @@ module top_led_photo_tb;
 
         $display("Scene: red LED right of centre (pink phone), green + blue distractors");
         show("photo_leds");
+
+        // V2 sonar requires three valid readings after reset.
+        // Wait for the actual UART drive command, not just the
+        // combinational motor output. Bound the wait to 300 ms.
+        for (int wait_i = 0;
+             wait_i < 30 &&
+             (ugv_pwm(1) != steer(r_x, 1) ||
+              ugv_pwm(0) != steer(r_x, 0));
+             wait_i++) begin
+            #10ms;
+        end
+
         check_driving_to(430, 205);
 
         $display("Scene: red LED left of centre");
