@@ -23,7 +23,7 @@ set_input_delay -clock PCLK -clock_fall -min 0.0 \
 
 # Board buttons, switches, IR and sonar echo are asynchronous
 # external inputs. Their receiving logic includes synchronisers.
-set_false_path -from [get_ports {KEY[0] SW[0] IRDA_RXD GPIO_1[29]}]
+set_false_path -from [get_ports {KEY[0] SW[0] SW[1] SW[2] IRDA_RXD GPIO_1[29]}]
 
 # Slow/status outputs do not have a synchronous external receiver.
 set_false_path -to [get_ports {LEDR[*]}]
@@ -71,3 +71,8 @@ set_max_delay -from [get_registers {*u_vision_cdc|payload_hold*}] -to [get_regis
 
 # SCCB camera-configuration status synchroniser: first stage only
 set_false_path -to [get_registers {*cfg_sync[0]}]
+# Camera stream-integrity status: PCLK -> CLOCK_50
+# Exclude only the asynchronous input to the first synchroniser flop.
+# The first-to-second synchroniser stage remains timing-constrained.
+set_false_path -from [get_registers {*u_camera_adapter|stream_ok}] -to [get_registers {*cam_ok_sync[0]}]
+
