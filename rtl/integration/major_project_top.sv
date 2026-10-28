@@ -19,6 +19,8 @@
 // SW0 = arm switch (1 = armed).
 // SW1 = target-validation bypass (1 = V1 behaviour).
 // SW2 = sonar-filter bypass (1 = V1 behaviour).
+// SW3 = operator reverse authorisation (1 = cleared reverse corridor).
+// SW4 = camera automatic-recovery bypass (1 = disabled).
 // IR Power = emergency stop.
 // IR CH+   = release emergency-stop latch.
 //
@@ -570,21 +572,56 @@ module major_project_top #(
         .fresh_target_x(camera_fresh_x)
     );
 
-    wire safe_motor_enable =
-        rst_n_50 &&
-        arm &&
-        motion_permitted &&
-        !emergency_stop &&
-        camera_target_fresh &&
-        sonar_valid &&
-        sonar_forward_clear &&
-        motor_enable;
+    // V3 reverse-navigation interface. The V3 bay-sequencer will drive
+    // these signals. Until then, idle constants permit forward-only V2
+    // operation; the top-level safety bench forces them for reverse tests.
+    wire nav_rev_request = 1'b0;
+    wire signed [15:0] nav_rev_left_pwm = 16'sd0;
+    wire signed [15:0] nav_rev_right_pwm = 16'sd0;
 
-    wire signed [9:0] chassis_left =
-        safe_motor_enable ? left_pwm[9:0] : 10'sd0;
+    // Preserve the V2 hierarchy names for existing integration tests.
+    wire safe_motor_enable;
+    wire signed [9:0] chassis_left;
+    wire signed [9:0] chassis_right;
 
-    wire signed [9:0] chassis_right =
-        safe_motor_enable ? right_pwm[9:0] : 10'sd0;
+    wire [2:0] reverse_mode;
+    wire reverse_stop_active;
+    wire reverse_permitted;
+    wire reverse_active;
+    wire reverse_timeout;
+    wire reverse_fault;
+    wire [2:0] reverse_status;
+    wire [15:0] reverse_ms;
+
+    motion_supervisor u_motion_supervisor (
+        .clk(CLOCK_50),
+        .rst_n(rst_n_50),
+        .arm(arm),
+        .emergency_stop(emergency_stop),
+        .motion_permitted(motion_permitted),
+        .camera_target_fresh(camera_target_fresh),
+        .sonar_valid(sonar_valid),
+        .sonar_forward_clear(sonar_forward_clear),
+        .distance_mm(distance_mm),
+        .fwd_enable(motor_enable),
+        .fwd_left_pwm(left_pwm),
+        .fwd_right_pwm(right_pwm),
+        .rev_request(nav_rev_request),
+        .rev_left_pwm(nav_rev_left_pwm),
+        .rev_right_pwm(nav_rev_right_pwm),
+        .reverse_enable(SW[3]),
+        .drive_enable(safe_motor_enable),
+        .left_cmd(chassis_left),
+        .right_cmd(chassis_right),
+        .mode(reverse_mode),
+        .stop_active(reverse_stop_active),
+        .reverse_permitted(reverse_permitted),
+        .reverse_active(reverse_active),
+        .reverse_timeout(reverse_timeout),
+        .reverse_fault(reverse_fault),
+        .reverse_status(reverse_status),
+        .reverse_ms(reverse_ms)
+    );
 
     // ====================================================
     // 11. UGV02 UART output
