@@ -43,7 +43,7 @@ MOTION="rtl/actuation/motion_interface.sv rtl/navigation/docking_fsm.sv rtl/navi
 TOP_RTL="rtl/integration/major_project_top.sv rtl/integration/camera_stream_adapter.sv rtl/integration/camera_health_monitor.sv
   rtl/integration/vision_result_cdc.sv rtl/integration/sonar_result_cdc.sv
   $MASK rtl/perception/led_centroid.sv
-  rtl/navigation/camera_frame_watchdog.sv rtl/navigation/steering_controller.sv rtl/navigation/docking_fsm.sv
+  rtl/navigation/camera_frame_watchdog.sv rtl/navigation/multi_bay_sequencer.sv rtl/navigation/steering_controller.sv rtl/navigation/docking_fsm.sv
   rtl/actuation/sonar_freshness.sv rtl/actuation/sonar_filter.sv rtl/actuation/motion_supervisor.sv
   rtl/actuation/ir_safety_latch.sv rtl/actuation/motion_interface.sv
   vendor/camera/rtl/video_pll.sv vendor/camera/rtl/clock_divider.sv vendor/camera/rtl/ov7670_config.sv

@@ -35,6 +35,7 @@
 // cutoffs. Physical stopping latency must be measured.
 
 module major_project_top #(
+    parameter int unsigned REVERSE_DWELL_MS = 100,
     parameter int CAMERA_FPS = 50,
     parameter int SONAR_PACE_CLKS = 4_390_400,
     parameter int UART_PERIOD_MS = 10,
@@ -533,11 +534,71 @@ module major_project_top #(
     wire [2:0] state_debug;
     wire [9:0] target_x_debug;
 
+    // V3-C2 integration mode: SW5 OFF preserves V2 single-bay operation.
+    // SW5 ON enables sequencer ONLY for controlled simulation/bring-up.
+    // SW6 is a MOCK bay-LED acknowledgement (NOT a real ESP32 link).
+    // Do not enable SW5 on a moving robot until bay identity and
+    // rear-corridor clearance have been physically validated.
+    (* async_reg = "true" *) logic [1:0] v3_sw5_sync = 2'b00;
+    (* async_reg = "true" *) logic [1:0] v3_sw6_sync = 2'b00;
+    always_ff @(posedge CLOCK_50 or negedge rst_n_50) begin
+        if (!rst_n_50) begin
+            v3_sw5_sync <= 2'b00;
+            v3_sw6_sync <= 2'b00;
+        end else begin
+            v3_sw5_sync <= {v3_sw5_sync[0], SW[5]};
+            v3_sw6_sync <= {v3_sw6_sync[0], SW[6]};
+        end
+    end
+    wire v3_enable = v3_sw5_sync[1];
+    wire v3_led_ready_mock = v3_sw6_sync[1];
+
+    wire [1:0] seq_bay_index;
+    wire seq_dock_enable;
+    wire seq_dock_restart;
+    wire seq_complete;
+    wire seq_fault;
+    wire [3:0] seq_state;
+    wire seq_rev_request;
+    wire signed [15:0] seq_rev_left_pwm, seq_rev_right_pwm;
+
+    // Gated reset affects only the V2 motion/navigation state, not the
+    // camera, IR latch, sonar, or independent safety supervisor.
+    wire docking_local_rst_n = rst_n_50 &&
+        (!v3_enable || !seq_dock_restart);
+    wire docking_local_arm = arm &&
+        (!v3_enable || seq_dock_enable);
+
+    multi_bay_sequencer u_multi_bay_sequencer (
+        .clk(CLOCK_50),
+        .rst_n(rst_n_50 && v3_enable),
+        .arm(arm),
+        .emergency_stop(emergency_stop),
+        .bay_led_ready(v3_led_ready_mock),
+        .frame_done(nav_frame_done),
+        .target_valid(nav_target_valid && camera_ok),
+        .dock_state(state_debug),
+        .sonar_valid(sonar_valid),
+        .distance_mm(distance_mm),
+        .reverse_active(reverse_active),
+        .reverse_fault(reverse_fault),
+        .reverse_timeout(reverse_timeout),
+        .bay_index(seq_bay_index),
+        .dock_enable(seq_dock_enable),
+        .dock_restart(seq_dock_restart),
+        .nav_rev_request(seq_rev_request),
+        .nav_rev_left_pwm(seq_rev_left_pwm),
+        .nav_rev_right_pwm(seq_rev_right_pwm),
+        .sequence_complete(seq_complete),
+        .sequence_fault(seq_fault),
+        .state_debug(seq_state)
+    );
+
     motion_interface u_motion (
         .clk(CLOCK_50),
-        .rst_n(rst_n_50),
+        .rst_n(docking_local_rst_n),
 
-        .arm(arm),
+        .arm(docking_local_arm),
         .emergency_stop(emergency_stop),
 
         .frame_done(nav_frame_done),
@@ -572,12 +633,12 @@ module major_project_top #(
         .fresh_target_x(camera_fresh_x)
     );
 
-    // V3 reverse-navigation interface. The V3 bay-sequencer will drive
-    // these signals. Until then, idle constants permit forward-only V2
-    // operation; the top-level safety bench forces them for reverse tests.
-    wire nav_rev_request = 1'b0;
-    wire signed [15:0] nav_rev_left_pwm = 16'sd0;
-    wire signed [15:0] nav_rev_right_pwm = 16'sd0;
+    // Keep legacy hierarchical signal names for existing safety benches.
+    wire nav_rev_request = v3_enable && seq_rev_request;
+    wire signed [15:0] nav_rev_left_pwm =
+        v3_enable ? seq_rev_left_pwm : 16'sd0;
+    wire signed [15:0] nav_rev_right_pwm =
+        v3_enable ? seq_rev_right_pwm : 16'sd0;
 
     // Preserve the V2 hierarchy names for existing integration tests.
     wire safe_motor_enable;
@@ -593,7 +654,9 @@ module major_project_top #(
     wire [2:0] reverse_status;
     wire [15:0] reverse_ms;
 
-    motion_supervisor u_motion_supervisor (
+    motion_supervisor #(
+        .DIR_DWELL_MS(REVERSE_DWELL_MS)
+    ) u_motion_supervisor (
         .clk(CLOCK_50),
         .rst_n(rst_n_50),
         .arm(arm),
@@ -603,7 +666,7 @@ module major_project_top #(
         .sonar_valid(sonar_valid),
         .sonar_forward_clear(sonar_forward_clear),
         .distance_mm(distance_mm),
-        .fwd_enable(motor_enable),
+        .fwd_enable(motor_enable && (!v3_enable || seq_dock_enable)),
         .fwd_left_pwm(left_pwm),
         .fwd_right_pwm(right_pwm),
         .rev_request(nav_rev_request),
