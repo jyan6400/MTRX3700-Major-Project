@@ -6,6 +6,7 @@ set_global_assignment -name SDC_FILE major_project.sdc
 # Group 26 V1 synthesizable RTL
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/integration/major_project_top.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/integration/camera_stream_adapter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/integration/camera_health_monitor.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/integration/vision_result_cdc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/integration/sonar_result_cdc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/image_processing/red_mask.sv

@@ -3,8 +3,12 @@
 # Verilator 5.050. Prints PASS/FAIL per bench and CAUGHT for the broken copy.
 # Exit status 0 only if every bench passes and the broken copy is caught.
 #
-#   ./sim/run_camera_tests.sh
+#   ./sim/run_camera_tests.sh            unit + capture benches (about 40 s)
+#   ./sim/run_camera_tests.sh --full     also the top-level camera recovery
+#                                        bench (adds about 2 min)
 set -u
+FULL=0
+[ "${1:-}" = "--full" ] && FULL=1
 cd "$(dirname "$0")/.."
 B=build/camera_tests
 mkdir -p "$B"
@@ -37,6 +41,22 @@ if run capture_vision camera_capture_vision_tb \
         sim/integration/camera_capture_vision_tb.sv; then
     echo "PASS: camera_capture_vision_tb (2 full 640x480 frames from the camera model)"
 else echo "FAIL: camera_capture_vision_tb (see $B/capture_vision.log)"; status=1; fi
+
+if run health_unit camera_health_monitor_tb \
+        rtl/integration/camera_health_monitor.sv sim/unit/camera_health_monitor_tb.sv; then
+    echo "PASS: camera_health_monitor_tb ($(grep -c '^PASS \[' $B/health_unit.log) scenarios)"
+else echo "FAIL: camera_health_monitor_tb (see $B/health_unit.log)"; status=1; fi
+
+if [ $FULL -eq 1 ]; then
+    TOP_RTL="$(ls rtl/*/*.sv) vendor/camera/rtl/video_pll.sv vendor/camera/rtl/clock_divider.sv
+        vendor/camera/rtl/ov7670_config.sv vendor/camera/rtl/ov7670_capture.sv vendor/camera/rtl/i2c_master.sv
+        vendor/ultrasonic/rtl/sonar_pll.sv vendor/ultrasonic/rtl/sonar_range.sv vendor/ir/rtl/nec_decoder.sv
+        vendor/chassis/rtl/chassis_drive.sv vendor/chassis/rtl/uart_tx.sv"
+    if run top_recovery top_camera_recovery_tb $TOP_RTL vendor/camera/tb/ov7670_model.sv \
+            sim/integration/top_camera_recovery_tb.sv; then
+        echo "PASS: top_camera_recovery_tb (camera lockup recovered through the real top level)"
+    else echo "FAIL: top_camera_recovery_tb (see $B/top_recovery.log)"; status=1; fi
+fi
 
 # Deliberately broken module: the bench must FAIL on it.
 run adapter_broken camera_stream_adapter_tb \

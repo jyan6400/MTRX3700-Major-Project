@@ -35,7 +35,10 @@
 module major_project_top #(
     parameter int CAMERA_FPS = 50,
     parameter int SONAR_PACE_CLKS = 4_390_400,
-    parameter int UART_PERIOD_MS = 10
+    parameter int UART_PERIOD_MS = 10,
+    // Camera health monitor timeouts in CLOCK_50 cycles (benches shorten them).
+    parameter int CAM_LOST_TIMEOUT    = 5_000_000,   // 100 ms without a frame
+    parameter int CAM_RECOVER_TIMEOUT = 10_000_000   // 200 ms before reconfiguring
 ) (
     input  wire        CLOCK_50,
     input  wire [3:0]  KEY,
@@ -168,11 +171,25 @@ module major_project_top #(
     wire cfg_done;
     wire cfg_error;
 
+    // V3 camera recovery (Luke): camera_health_monitor (50 MHz) holds
+    // cam_reconfig high for 100 us when the stream is lost. It enters the
+    // SCCB domain through two flops and restarts ov7670_config, which
+    // pulses the camera's RESET# and writes every register again.
+    wire cam_reconfig;
+    (* async_reg = "true" *) logic [1:0] cam_reconfig_sccb = 2'b00;
+
+    always_ff @(posedge sccb_clk or negedge rst_n_sccb) begin
+        if (!rst_n_sccb)
+            cam_reconfig_sccb <= 2'b00;
+        else
+            cam_reconfig_sccb <= {cam_reconfig_sccb[0], cam_reconfig};
+    end
+
     ov7670_config #(
         .FPS(CAMERA_FPS)
     ) u_camera_config (
         .clk(sccb_clk),
-        .reset(~rst_n_sccb),
+        .reset(~rst_n_sccb | cam_reconfig_sccb[1]),
         .sioc(cam_sioc),
         .siod(GPIO_1[24]),
         .cam_reset_n(cam_reset_n),
@@ -609,15 +626,47 @@ module major_project_top #(
             cfg_sync <= {cfg_sync[0], cfg_done};
     end
 
-    // Camera stream integrity (PCLK level signal) into 50 MHz.
-    (* async_reg = "true" *) logic [1:0] cam_ok_sync = 2'b00;
+    // V3 camera health and dropout recovery (Luke), 50 MHz domain.
+    // Frame events cross as bit 0 of the adapter's good/bad counters
+    // (one change per frame), synchronised inside the monitor.
+    // SW4 ON = bypass: report only, never reconfigure the camera (R9).
+    (* async_reg = "true" *) logic [1:0] cam_recover_bypass_sync = 2'b00;
 
     always_ff @(posedge CLOCK_50 or negedge rst_n_50) begin
         if (!rst_n_50)
-            cam_ok_sync <= 2'b00;
+            cam_recover_bypass_sync <= 2'b00;
         else
-            cam_ok_sync <= {cam_ok_sync[0], cam_stream_ok};
+            cam_recover_bypass_sync <= {cam_recover_bypass_sync[0], SW[4]};
     end
+
+    wire        camera_ok;
+    wire [2:0]  cam_health_state;
+    wire [23:0] cam_good_interval;
+    wire [27:0] cam_last_outage;
+    wire [7:0]  cam_dropouts;
+    wire [7:0]  cam_recoveries;
+
+    camera_health_monitor #(
+        .LOST_TIMEOUT(CAM_LOST_TIMEOUT),
+        .RECOVER_TIMEOUT(CAM_RECOVER_TIMEOUT)
+    ) u_camera_health (
+        .clk(CLOCK_50),
+        .rst_n(rst_n_50),
+
+        .good_toggle_async(cam_good_frames[0]),
+        .bad_toggle_async(cam_bad_frames[0]),
+        .cfg_done(cfg_sync[1]),
+        .auto_recover_en(~cam_recover_bypass_sync[1]),
+
+        .camera_ok(camera_ok),
+        .reconfig(cam_reconfig),
+        .state(cam_health_state),
+
+        .good_interval(cam_good_interval),
+        .last_outage(cam_last_outage),
+        .dropouts(cam_dropouts),
+        .recoveries(cam_recoveries)
+    );
 
     // ====================================================
     // V1 TEMPORARY CAMERA DIAGNOSTICS
@@ -655,7 +704,7 @@ module major_project_top #(
     // LEDR4: Target right of centre
     // LEDR5: Emergency stop active
     // LEDR6: Sonar valid
-    // LEDR7: Last camera frame passed the integrity check
+    // LEDR7: Camera healthy (confirmed good frames, no dropout)
     // LEDR8: Vision CDC overrun
     // LEDR9: Sonar CDC overrun
 
@@ -666,7 +715,7 @@ module major_project_top #(
     assign LEDR[4] = diag_target_valid && (diag_target_x > 10'd360);
     assign LEDR[5] = emergency_stop;
     assign LEDR[6] = sonar_valid;
-    assign LEDR[7] = cam_ok_sync[1];
+    assign LEDR[7] = camera_ok;
     assign LEDR[8] = vision_cdc_overrun;
     assign LEDR[9] = sonar_cdc_overrun;
 

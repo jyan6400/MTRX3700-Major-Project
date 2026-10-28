@@ -48,7 +48,7 @@ IP=rtl/image_processing
 MASK="$IP/led_colour_mask.sv $IP/red_mask.sv"
 TRI="$IP/led_colour_mask.sv $IP/colour_run_filter.sv rtl/perception/led_centroid.sv $IP/tri_led_detect.sv"
 
-TOP_RTL="rtl/integration/major_project_top.sv rtl/integration/camera_stream_adapter.sv
+TOP_RTL="rtl/integration/major_project_top.sv rtl/integration/camera_stream_adapter.sv rtl/integration/camera_health_monitor.sv
   rtl/integration/vision_result_cdc.sv rtl/integration/sonar_result_cdc.sv
   $MASK rtl/perception/led_centroid.sv
   rtl/navigation/camera_frame_watchdog.sv rtl/navigation/steering_controller.sv rtl/navigation/docking_fsm.sv
