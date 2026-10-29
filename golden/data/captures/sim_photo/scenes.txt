@@ -1,4 +1,0 @@
-photo_leds SW1=0
-photo_two_red SW1=0
-photo_two_red SW1=1
-photo_red_left SW1=1
