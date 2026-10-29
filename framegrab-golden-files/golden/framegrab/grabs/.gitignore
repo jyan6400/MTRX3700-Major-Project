@@ -1,4 +1,0 @@
-# Photos from the robot (tools/take_photo.py). Commit dump.bin, results.json, frame.png, grab_jtag.log and
-# validation.png/.json; validate_grab.py makes the rest again from dump.bin (scene.hex alone is 2.2 MB).
-*.hex
-replay.log
