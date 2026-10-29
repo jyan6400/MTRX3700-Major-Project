@@ -74,5 +74,38 @@ set_false_path -to [get_registers {*cfg_sync[0]}]
 # Camera stream-integrity status: PCLK -> CLOCK_50
 # Exclude only the asynchronous input to the first synchroniser flop.
 # The first-to-second synchroniser stage remains timing-constrained.
-set_false_path -from [get_registers {*u_camera_adapter|stream_ok}] -to [get_registers {*cam_ok_sync[0]}]
 
+
+# BEGIN V3-D10C STAGE 5
+
+# Temporal mailbox request/acknowledgement synchronisers.
+# Only the asynchronous input to the first stage is excluded.
+set_false_path -to [get_registers {*result_mailbox|req_d1}]
+set_false_path -to [get_registers {*result_mailbox|ack_s1}]
+
+# Camera-health asynchronous counter inputs.
+# First-stage synchronisers only.
+set_false_path -to [get_registers {*u_camera_health|good_sync[0]}]
+set_false_path -to [get_registers {*u_camera_health|bad_sync[0]}]
+
+# Complete 35-bit temporal mailbox payload.
+# Data remains stable during the request/acknowledgement transaction.
+# Constrain data delivery with a maximum-delay bound.
+set_max_delay -from [get_registers {*result_mailbox|hold_payload*}] -to [get_registers {*result_mailbox|dst_target_valid *result_mailbox|dst_x* *result_mailbox|dst_y* *result_mailbox|dst_count*}] 20.000
+
+# END V3-D10C STAGE 5
+# BEGIN V3-D10C STAGE 5D ASYNC SWITCH INPUTS
+
+# Mechanical switches are asynchronous to FPGA clocks.
+# Exclude only switch-to-first-stage synchroniser paths.
+
+set_false_path -from [get_ports {SW[3]}] -to [get_registers {*u_motion_supervisor|rev_en_meta}]
+set_false_path -from [get_ports {SW[4]}] -to [get_registers {*cam_recover_bypass_sync[0]}]
+set_false_path -from [get_ports {SW[5]}] -to [get_registers {*v3_sw5_sync[0]}]
+set_false_path -from [get_ports {SW[6]}] -to [get_registers {*v3_sw6_sync[0]}]
+set_false_path -from [get_ports {SW[7]}] -to [get_registers {*t_acquire_enable_sync[0]}]
+set_false_path -from [get_ports {SW[7]}] -to [get_registers {*temporal_off_sync[0]}]
+set_false_path -from [get_ports {SW[8]}] -to [get_registers {*temporal_on_sync[0]}]
+set_false_path -from [get_ports {SW[9]}] -to [get_registers {*t_debug_mode_sync[0]}]
+
+# END V3-D10C STAGE 5D ASYNC SWITCH INPUTS

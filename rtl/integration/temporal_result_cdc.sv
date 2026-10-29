@@ -14,13 +14,15 @@ module temporal_result_cdc #(
     output logic src_overrun,
     input wire dst_clk, input wire dst_rst_n,
     output logic dst_valid,
-    output logic dst_target_valid,
-    output logic [XW-1:0] dst_x,
-    output logic [YW-1:0] dst_y,
-    output logic [CW-1:0] dst_count
+    (* preserve *) output logic dst_target_valid,
+    (* preserve *) output logic [XW-1:0] dst_x,
+    (* preserve *) output logic [YW-1:0] dst_y,
+    (* preserve *) output logic [CW-1:0] dst_count
 );
     localparam int PW=1+XW+YW+CW;
-    logic [PW-1:0] hold_payload;
+    // Stage 4B: keep the full coherent CDC payload for post-fit inspection.
+    // Debug-only observer remains disconnected from docking and motor control.
+    (* preserve *) logic [PW-1:0] hold_payload;
     logic req_toggle, ack_toggle;
     (* async_reg = "true" *) logic ack_s1, ack_s2;
     (* async_reg = "true" *) logic req_d1, req_d2;

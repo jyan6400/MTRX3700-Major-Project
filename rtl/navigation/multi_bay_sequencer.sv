@@ -320,8 +320,8 @@ module multi_bay_sequencer #(
                 S_REV_START,
                 S_REV_RUN: begin
                     nav_rev_request   = 1'b1;
-                    nav_rev_left_pwm  = -16'(REVERSE_PWM);
-                    nav_rev_right_pwm = -16'(REVERSE_PWM);
+                    nav_rev_left_pwm  = -$signed(REVERSE_PWM);
+                    nav_rev_right_pwm = -$signed(REVERSE_PWM);
                 end
 
                 default: begin

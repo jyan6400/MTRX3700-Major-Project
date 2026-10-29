@@ -270,6 +270,128 @@ module major_project_top #(
         .frame_period(cam_frame_period)
     );
 
+    // V3-D10C Stage 2: isolated sequential CCL observer, debug ONLY.
+    // This does NOT feed navigation, actuation, UART or existing LED routing.
+    // Uses the existing checked 640x480 stream and existing SW7/SW8 modes.
+    // Place these wires in the hierarchy for Signal Tap inspection later.
+    (* keep = "true" *) wire d10c_off_ready;
+    (* keep = "true" *) wire d10c_pair_complete;
+    (* keep = "true" *) wire d10c_pair_error;
+    (* keep = "true" *) wire d10c_frame_ready;
+    (* keep = "true" *) wire d10c_frame_error;
+    (* keep = "true" *) wire d10c_frame_overrun;
+    (* keep = "true" *) wire d10c_ccl_busy;
+    (* keep = "true" *) wire d10c_ccl_result_valid;
+    (* keep = "true" *) wire d10c_src_ready;
+    (* keep = "true" *) wire d10c_src_overrun;
+    (* keep = "true" *) wire d10c_result_50_valid;
+    (* keep = "true" *) wire d10c_target_50_valid;
+    (* keep = "true" *) wire [8:0] d10c_target_50_x;
+    (* keep = "true" *) wire [7:0] d10c_target_50_y;
+    (* keep = "true" *) wire [16:0] d10c_blob_50_pixels;
+
+    temporal_camera_to_50_pipeline #(
+        .RAW_W(640), .RAW_H(480), .MIN_PIXELS(5)
+    ) u_d10c_observer (
+        .pclk(cam_pclk), .rst_n_pclk(rst_n_cam),
+        .clk_50(CLOCK_50), .rst_n_50(rst_n_50),
+        .invalidate(temporal_invalidate),
+        .capture_off(temporal_off_mode),
+        .capture_on(temporal_on_mode),
+        .frame_start(frame_start), .frame_end(frame_end),
+        .frame_good(cam_frame_good), .pixel_valid(pixel_valid),
+        .pixel_rgb565(pixel_rgb565), .pixel_x(pixel_x), .pixel_y(pixel_y),
+        .off_ready(d10c_off_ready),
+        .pair_complete(d10c_pair_complete),
+        .pair_error(d10c_pair_error),
+        .frame_ready(d10c_frame_ready),
+        .frame_error(d10c_frame_error),
+        .frame_overrun(d10c_frame_overrun),
+        .ccl_busy(d10c_ccl_busy),
+        .ccl_result_valid(d10c_ccl_result_valid),
+        .cdc_src_ready(d10c_src_ready),
+        .cdc_src_overrun(d10c_src_overrun),
+        .result_50_valid(d10c_result_50_valid),
+        .target_50_valid(d10c_target_50_valid),
+        .target_50_x(d10c_target_50_x),
+        .target_50_y(d10c_target_50_y),
+        .blob_50_pixels(d10c_blob_50_pixels)
+    );
+
+    // V3-D7: independent temporal-perception feasibility path (PCLK domain).
+    // SW7=1 enables acquisition; SW8=0 captures OFF, SW8=1 captures ON.
+    // Keep SW7=1 when toggling SW8, so the OFF reference is retained.
+    // SW9 multiplexes LEDR[2:4] debug only.
+    // Neither temporal result nor these controls feed any motor or sequencer input.
+    (* async_reg = "true" *) logic [1:0] temporal_off_sync, temporal_on_sync;
+    always_ff @(posedge cam_pclk or negedge rst_n_cam) begin
+        if (!rst_n_cam) begin
+            temporal_off_sync <= 2'b00;
+            temporal_on_sync <= 2'b00;
+        end else begin
+            temporal_off_sync <= {temporal_off_sync[0], SW[7]};
+            temporal_on_sync  <= {temporal_on_sync[0], SW[8]};
+        end
+    end
+    wire temporal_off_mode = temporal_off_sync[1] && !temporal_on_sync[1];
+    wire temporal_on_mode  = temporal_off_sync[1] && temporal_on_sync[1];
+    logic temporal_on_q;
+    always_ff @(posedge cam_pclk or negedge rst_n_cam) begin
+        if (!rst_n_cam) begin
+            temporal_on_q  <= 1'b0;
+        end else begin
+            temporal_on_q  <= temporal_on_mode;
+        end
+    end
+    // OFF->ON must NOT invalidate the freshly committed OFF reference.
+    // SW7 low and ON->OFF reset acquisition. Malformed frame aborts it.
+    wire temporal_invalidate = !temporal_off_sync[1] ||
+        (temporal_on_q && !temporal_on_mode) ||
+        (frame_end && !cam_frame_good);
+
+    // V3-D10C Stage 3: the superseded temporal pixel+blob implementation
+    // was removed. The observer above performs OFF/ON comparison, sequential
+    // CCL, and coherent PCLK-to-CLOCK_50 mailbox transfer.
+    // Latch only coherent mailbox results; no multi-bit asynchronous sampling.
+    (* async_reg = "true" *) logic [1:0] t_debug_mode_sync;
+    (* async_reg = "true" *) logic [1:0] t_acquire_enable_sync;
+    // Stage 4C: diagnostic-only result snapshot. noprune keeps otherwise
+    // fanout-free registers as Signal Tap observation points in Quartus.
+    // Preserve the complete upstream result cone without driving motors.
+    (* noprune *) logic t_result_valid_latched;
+    (* noprune *) logic t_target_valid_latched;
+    (* noprune *) logic [8:0] t_target_x_latched;
+    (* noprune *) logic [7:0] t_target_y_latched;
+    (* noprune *) logic [16:0] t_pixels_latched;
+    always_ff @(posedge CLOCK_50 or negedge rst_n_50) begin
+        if (!rst_n_50) begin
+            t_debug_mode_sync <= '0;
+            t_acquire_enable_sync <= '0;
+            t_result_valid_latched <= 1'b0;
+            t_target_valid_latched <= 1'b0;
+            t_target_x_latched <= '0;
+            t_target_y_latched <= '0;
+            t_pixels_latched <= '0;
+        end else begin
+            t_debug_mode_sync <= {t_debug_mode_sync[0], SW[9]};
+            t_acquire_enable_sync <= {t_acquire_enable_sync[0], SW[7]};
+            if (!t_acquire_enable_sync[1]) begin
+                t_result_valid_latched <= 1'b0;
+                t_target_valid_latched <= 1'b0;
+                t_target_x_latched <= '0;
+                t_target_y_latched <= '0;
+                t_pixels_latched <= '0;
+            end else if (d10c_result_50_valid) begin
+                t_result_valid_latched <= 1'b1;
+                t_target_valid_latched <= d10c_target_50_valid;
+                t_target_x_latched <= d10c_target_50_x;
+                t_target_y_latched <= d10c_target_50_y;
+                t_pixels_latched <= d10c_blob_50_pixels;
+            end
+        end
+    end
+    wire temporal_debug_enable = t_debug_mode_sync[1];
+
     wire        mask_valid;
     wire        is_red;
     wire [9:0]  mask_x;
@@ -810,9 +932,9 @@ module major_project_top #(
 
     assign LEDR[0] = cfg_sync[1];
     assign LEDR[1] = diag_frame_heartbeat;
-    assign LEDR[2] = diag_target_valid;
-    assign LEDR[3] = diag_target_valid && (diag_target_x < 10'd280);
-    assign LEDR[4] = diag_target_valid && (diag_target_x > 10'd360);
+    assign LEDR[2] = temporal_debug_enable ? (t_result_valid_latched && t_target_valid_latched) : diag_target_valid;
+    assign LEDR[3] = temporal_debug_enable ? (t_result_valid_latched && t_target_valid_latched && t_target_x_latched < 9'd140) : (diag_target_valid && diag_target_x < 10'd280);
+    assign LEDR[4] = temporal_debug_enable ? t_result_valid_latched : (diag_target_valid && diag_target_x > 10'd360);
     assign LEDR[5] = emergency_stop;
     assign LEDR[6] = sonar_valid;
     assign LEDR[7] = camera_ok;
