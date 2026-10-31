@@ -1,0 +1,226 @@
+{
+  "grab": "sim_vo_red_800",
+  "sel": 0,
+  "decoded": {
+    "live_no": 13,
+    "result_no": 12,
+    "magic": 38,
+    "layout": 2,
+    "sel": 0,
+    "frame_good": 1,
+    "both_done": 1,
+    "full": [
+      {
+        "x_q4": 1240,
+        "y_q4": 4099,
+        "valid": 1,
+        "flags": 0,
+        "count": 274
+      },
+      {
+        "x_q4": 4414,
+        "y_q4": 4061,
+        "valid": 1,
+        "flags": 0,
+        "count": 291
+      },
+      {
+        "x_q4": 7749,
+        "y_q4": 4017,
+        "valid": 1,
+        "flags": 0,
+        "count": 306
+      }
+    ],
+    "kept": [
+      {
+        "x_q4": 617,
+        "y_q4": 2048,
+        "valid": 1,
+        "flags": 0,
+        "count": 58
+      },
+      {
+        "x_q4": 2206,
+        "y_q4": 2030,
+        "valid": 1,
+        "flags": 0,
+        "count": 64
+      },
+      {
+        "x_q4": 3875,
+        "y_q4": 2008,
+        "valid": 1,
+        "flags": 0,
+        "count": 66
+      }
+    ],
+    "leds": [
+      {
+        "forward": 826,
+        "lateral": -362,
+        "valid": 1
+      },
+      {
+        "forward": 806,
+        "lateral": -63,
+        "valid": 1
+      },
+      {
+        "forward": 785,
+        "lateral": 235,
+        "valid": 1
+      }
+    ],
+    "pair": {
+      "pair_valid": 1,
+      "pair_ok": 1,
+      "heading_q12": 281
+    },
+    "track": {
+      "range_mm": 826,
+      "vel_mm_s": 0,
+      "lateral_mm": -362,
+      "disp_mm": 0,
+      "track_valid": 1,
+      "settled": 1,
+      "coast": 0
+    }
+  },
+  "model_kept": [
+    {
+      "valid": 1,
+      "x_q4": 617,
+      "y_q4": 2048,
+      "count": 58,
+      "flags": 0,
+      "bx0": 35,
+      "bx1": 42,
+      "by0": 124,
+      "by1": 132
+    },
+    {
+      "valid": 1,
+      "x_q4": 2206,
+      "y_q4": 2030,
+      "count": 64,
+      "flags": 0,
+      "bx0": 134,
+      "bx1": 142,
+      "by0": 122,
+      "by1": 131
+    },
+    {
+      "valid": 1,
+      "x_q4": 3875,
+      "y_q4": 2008,
+      "count": 66,
+      "flags": 0,
+      "bx0": 238,
+      "bx1": 246,
+      "by0": 121,
+      "by1": 130
+    }
+  ],
+  "model_geom": {
+    "leds": [
+      {
+        "valid": 1,
+        "forward": 826,
+        "lateral": -362
+      },
+      {
+        "valid": 1,
+        "forward": 806,
+        "lateral": -63
+      },
+      {
+        "valid": 1,
+        "forward": 785,
+        "lateral": 235
+      }
+    ],
+    "pair": {
+      "pair_valid": 1,
+      "pair_ok": 1,
+      "heading_q12": 281,
+      "pair": 2
+    }
+  },
+  "tape": {
+    "pose": {
+      "X": 120.0,
+      "Y": -800.0,
+      "psi_deg": 4.0
+    },
+    "errors": [
+      {
+        "colour": "red",
+        "forward_err": -1.3489591803919438,
+        "lateral_err": 1.171722113825922,
+        "forward_true": 827.348959180392
+      },
+      {
+        "colour": "green",
+        "forward_err": -0.4220170571544486,
+        "lateral_err": 0.9025070358786706,
+        "forward_true": 806.4220170571544
+      },
+      {
+        "colour": "blue",
+        "forward_err": -0.49507493391683965,
+        "lateral_err": -0.3667080420686091,
+        "forward_true": 785.4950749339168
+      }
+    ]
+  },
+  "checks": [
+    {
+      "result": "INFO",
+      "check": "grab",
+      "text": "tracking red; calibration: default guess, not yet measured on the robot"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "status 0x26020030"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "the words are the kept frame's (frame 12, live 13)"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "frame passed the adapter (1), both detections reported (1)"
+    },
+    {
+      "result": "PASS",
+      "check": "KEPT (exact)",
+      "text": "equal: red (38.56, 128.00) px, 58 px; green (137.88, 126.88) px, 64 px; blue (242.19, 125.50) px, 66 px"
+    },
+    {
+      "result": "PASS",
+      "check": "GEOM (exact)",
+      "text": "equal: red 826 mm ahead, -362 mm; green 806 mm ahead, -63 mm; blue 785 mm ahead, +235 mm; heading +3.9 deg"
+    },
+    {
+      "result": "PASS",
+      "check": "FULL (approximate)",
+      "text": "every LED's full-resolution centroid within 2.5 px of twice the photo's"
+    },
+    {
+      "result": "PASS",
+      "check": "track",
+      "text": "range 826 mm (this frame's geometry 826), velocity 0 mm/s, lateral -362 mm, moved 0 mm since lock-on"
+    },
+    {
+      "result": "PASS",
+      "check": "tape",
+      "text": "red forward -1 mm, lateral +1 mm; green forward -0 mm, lateral +1 mm; blue forward -0 mm, lateral -0 mm (threshold 80 mm; camera not calibrated yet: vo_calibrate.py)"
+    }
+  ],
+  "fails": 0,
+  "warns": 0
+}

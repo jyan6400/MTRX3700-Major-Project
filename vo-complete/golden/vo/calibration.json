@@ -1,0 +1,9 @@
+{
+  "source": "default guess, not yet measured on the robot",
+  "f_px": 560.0,
+  "cx": 319.5,
+  "cy": 239.5,
+  "pitch_deg": 12.0,
+  "dh_mm": 150,
+  "q": {"F_Q4": 8960, "CX_Q4": 5112, "CY_Q4": 3832, "SIN_Q14": 3406, "COS_Q14": 16026, "DH_MM": 150}
+}

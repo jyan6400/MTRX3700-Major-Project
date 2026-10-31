@@ -1,0 +1,175 @@
+{
+  "grab": "golden/framegrab/grabs/sim_two_red_v1",
+  "sw1": 1,
+  "decoded": {
+    "live_no": 11,
+    "result_no": 10,
+    "magic": 38,
+    "layout": 1,
+    "last_error": 0,
+    "stream_ok": 1,
+    "bypass": 1,
+    "frame_good": 1,
+    "kept_done": 1,
+    "full_done": 1,
+    "full": {
+      "valid": 1,
+      "x": 267,
+      "y": 270,
+      "count": 676,
+      "conf": 3,
+      "flags": 8,
+      "bx0": 109,
+      "bx1": 440,
+      "by0": 195,
+      "by1": 341
+    },
+    "kept": {
+      "valid": 1,
+      "x": 133,
+      "y": 135,
+      "count": 167,
+      "conf": 3,
+      "flags": 8,
+      "bx0": 55,
+      "bx1": 220,
+      "by0": 98,
+      "by1": 170
+    },
+    "sum_u": 22269,
+    "sum_v": 22614,
+    "n_kept": 76800,
+    "good_frames": 8,
+    "bad_frames": 1,
+    "dropped": 65535,
+    "period": 799680
+  },
+  "words": [
+    "0x000b000a",
+    "0x2601070c",
+    "0x010b010e",
+    "0x000002a4",
+    "0x88000003",
+    "0x006d01b8",
+    "0x00c30155",
+    "0x00850087",
+    "0x000000a7",
+    "0x88000003",
+    "0x003700dc",
+    "0x006200aa",
+    "0x000056fd",
+    "0x00005856",
+    "0x00012c00",
+    "0x00080001",
+    "0x0000ffff",
+    "0x000c33c0"
+  ],
+  "model_kept": {
+    "valid": 1,
+    "x": 133,
+    "y": 135,
+    "count": 167,
+    "conf": 3,
+    "flags": 8,
+    "bx0": 55,
+    "bx1": 220,
+    "by0": 98,
+    "by1": 170
+  },
+  "model_full_doubled": {
+    "valid": 1,
+    "x": 267,
+    "y": 271,
+    "count": 668,
+    "conf": 3,
+    "flags": 8,
+    "bx0": 110,
+    "bx1": 441,
+    "by0": 196,
+    "by1": 341
+  },
+  "replay_words": [
+    "0x00030002",
+    "0x2601070c",
+    "0x010b010f",
+    "0x0000029c",
+    "0x88000003",
+    "0x006e01b9",
+    "0x00c40155",
+    "0x00850087",
+    "0x000000a7",
+    "0x88000003",
+    "0x003700dc",
+    "0x006200aa",
+    "0x000056fd",
+    "0x00005856",
+    "0x00012c00",
+    "0x00020000",
+    "0x00000000",
+    "0x000c33c0"
+  ],
+  "checks": [
+    {
+      "result": "INFO",
+      "check": "grab",
+      "text": "golden/framegrab/grabs/sim_two_red_v1/dump.bin, CRC 0x888e, SW1=1 (V1 bypass), adapter good/bad frames 8/1, dropped pixels 65535, frame period 799680 PCLKs"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "status word 0x2601070c: Group 26 words, layout 1"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "the words are the kept frame's (frame 10, live 11)"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "both centroids reported together (full_done=1, kept_done=1)"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "the adapter passed the frame (frame_good)"
+    },
+    {
+      "result": "PASS",
+      "check": "integrity",
+      "text": "76800 kept pixels through the adapter (expected 76800)"
+    },
+    {
+      "result": "PASS",
+      "check": "KEPT (exact)",
+      "text": "equal: valid=1 (133,135) count=167 conf=3 flags=low_fill box x 55..220 y 98..170"
+    },
+    {
+      "result": "PASS",
+      "check": "KEPT sums (exact)",
+      "text": "red coordinate sums board (22269,22614) model (22269,22614) over 167 red pixels"
+    },
+    {
+      "result": "PASS",
+      "check": "FULL (approximate)",
+      "text": "within 3 px / 35 %: board valid=1 (267,270) count=676 conf=3 flags=low_fill box x 109..440 y 195..341; model on the doubled photo valid=1 (267,271) count=668 conf=3 flags=low_fill box x 110..441 y 196..341; KEPT x 4 = 668, KEPT x 2 = (266,270)"
+    },
+    {
+      "result": "PASS",
+      "check": "replay pixels",
+      "text": "replay: window from column 160, row 11, 50 fps, SW1=1; one frame: 307200 camera pixels, columns 0..639; 0 differ from frame.hex pixel-doubled"
+    },
+    {
+      "result": "PASS",
+      "check": "replay KEPT == board (exact)",
+      "text": "words 7..14 equal: valid=1 (133,135) count=167 conf=3 flags=low_fill box x 55..220 y 98..170"
+    },
+    {
+      "result": "PASS",
+      "check": "replay FULL == model on the doubled photo (exact)",
+      "text": "equal: valid=1 (267,271) count=668 conf=3 flags=low_fill box x 110..441 y 196..341"
+    }
+  ],
+  "fails": 0,
+  "warns": 0
+}
