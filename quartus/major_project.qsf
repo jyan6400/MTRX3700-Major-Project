@@ -690,4 +690,15 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/perception/temporal_sequen
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/perception/temporal_camera_pclk_pipeline.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/integration/temporal_result_cdc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/integration/temporal_camera_to_50_pipeline.sv
+
+
+# BEGIN V3-D10C STAGE 6B CDC SYNCHRONISERS
+# PCLK -> CLOCK_50 request toggle synchroniser
+set_instance_assignment -name SYNCHRONIZER_IDENTIFICATION "FORCED IF ASYNCHRONOUS" -to *result_mailbox|req_d1
+set_instance_assignment -name SYNCHRONIZER_IDENTIFICATION "FORCED IF ASYNCHRONOUS" -to *result_mailbox|req_d2
+
+# CLOCK_50 -> PCLK acknowledgement toggle synchroniser
+set_instance_assignment -name SYNCHRONIZER_IDENTIFICATION "FORCED IF ASYNCHRONOUS" -to *result_mailbox|ack_s1
+set_instance_assignment -name SYNCHRONIZER_IDENTIFICATION "FORCED IF ASYNCHRONOUS" -to *result_mailbox|ack_s2
+# END V3-D10C STAGE 6B CDC SYNCHRONISERS
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
